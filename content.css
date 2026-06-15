@@ -1,0 +1,48 @@
+:root {
+  --x-blue-delete-loaded: 1;
+}
+
+[data-x-blue-delete-hidden="true"],
+a[href*="/i/premium" i],
+a[href*="/i/premium_sign_up" i],
+a[href*="premium_sign_up" i],
+a[href*="premium-signup" i],
+a[href*="subscribe_to_premium" i],
+a[href*="/i/verified-orgs-signup" i],
+a[href*="/i/verified_orgs" i],
+a[href*="verified-orgs-signup" i],
+a[href*="verified_orgs_sign_up" i],
+a[href*="verified-organizations" i],
+a[href*="/settings/premium" i],
+a[href*="/settings/monetization" i],
+a[href*="/verified_orgs" i],
+a[href*="/verified-organizations" i],
+a[href*="/subscriptions/subscribe" i],
+a[href*="/subscriptions/sign_up" i],
+a[aria-label="Get verified" i],
+a[aria-label="Subscribe to Premium" i],
+a[aria-label="Upgrade to Premium" i],
+a[aria-label="Premium" i],
+button[aria-label="Get verified" i],
+button[aria-label="Subscribe to Premium" i],
+button[aria-label="Upgrade to Premium" i],
+button[aria-label="Premium" i],
+[role="button"][aria-label="Get verified" i],
+[role="button"][aria-label="Subscribe to Premium" i],
+[role="button"][aria-label="Upgrade to Premium" i],
+[role="button"][aria-label="Premium" i],
+a[aria-label="認証される"],
+button[aria-label="認証される"],
+[role="button"][aria-label="認証される"],
+a[aria-label="プレミアム"],
+button[aria-label="プレミアム"],
+[role="button"][aria-label="プレミアム"],
+a[aria-label="プレミアムにアップグレード"],
+button[aria-label="プレミアムにアップグレード"],
+[role="button"][aria-label="プレミアムにアップグレード"],
+a[aria-label="アップグレードする"],
+button[aria-label="アップグレードする"],
+[role="button"][aria-label="アップグレードする"] {
+  display: none !important;
+  visibility: hidden !important;
+}

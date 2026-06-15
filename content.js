@@ -120,6 +120,14 @@
     "Recommended"
   ];
 
+  const TEXT_ENTRY_SELECTOR = [
+    "textarea",
+    "input:not([type='button']):not([type='submit']):not([type='checkbox']):not([type='radio'])",
+    "[contenteditable='true']",
+    "[role='textbox']",
+    "[data-testid^='tweetTextarea_']"
+  ].join(",");
+
   const INTERACTIVE_SELECTOR = [
     "a[href]",
     "button",
@@ -157,6 +165,7 @@
   let lastSortCheckAt = 0;
   let latestSortLockedUntil = 0;
   let lastRouteKey = "";
+  let lastTextEntryInteractionAt = 0;
   const openedSortRoutes = new Set();
 
   const normalizeText = (value) =>
@@ -189,6 +198,57 @@
   const isInsidePost = (element) => {
     const article = element?.closest?.("article");
     return Boolean(article && article.contains(element));
+  };
+
+  const isTextEntryElement = (element) => {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) {
+      return false;
+    }
+
+    return Boolean(element.matches?.(TEXT_ENTRY_SELECTOR) || element.closest?.(TEXT_ENTRY_SELECTOR));
+  };
+
+  const containsTextEntry = (element) => {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) {
+      return false;
+    }
+
+    return isTextEntryElement(element) || Boolean(element.querySelector?.(TEXT_ENTRY_SELECTOR));
+  };
+
+  const getActiveElement = () => {
+    let active = document.activeElement;
+
+    while (active?.shadowRoot?.activeElement) {
+      active = active.shadowRoot.activeElement;
+    }
+
+    return active;
+  };
+
+  const hasActiveTextEntry = () => {
+    if (Date.now() - lastTextEntryInteractionAt < 2500) {
+      return true;
+    }
+
+    const active = getActiveElement();
+    if (isTextEntryElement(active)) {
+      return true;
+    }
+
+    const selection = window.getSelection?.();
+    const anchor = selection?.anchorNode;
+    const anchorElement = anchor?.nodeType === Node.ELEMENT_NODE
+      ? anchor
+      : anchor?.parentElement;
+
+    return isTextEntryElement(anchorElement);
+  };
+
+  const markTextEntryInteraction = (event) => {
+    if (isTextEntryElement(event.target)) {
+      lastTextEntryInteractionAt = Date.now();
+    }
   };
 
   const isVisible = (element) => {
@@ -224,6 +284,10 @@
       return;
     }
 
+    if (containsTextEntry(element)) {
+      return;
+    }
+
     element.setAttribute(HIDDEN_ATTR, "true");
     element.setAttribute(REASON_ATTR, reason);
   };
@@ -255,6 +319,10 @@
       return null;
     }
 
+    if (isTextEntryElement(element)) {
+      return null;
+    }
+
     const direct = element.closest("a[href], button, [role='button'], [role='link']");
     if (direct && (hasPremiumHref(direct) || isExactCta(getText(direct)) || isExactCta(direct.getAttribute("aria-label")))) {
       return direct;
@@ -270,6 +338,10 @@
 
     for (let depth = 0; current && current !== document.body && depth < 9; depth += 1) {
       if (current.matches?.("article")) {
+        break;
+      }
+
+      if (containsTextEntry(current)) {
         break;
       }
 
@@ -302,6 +374,10 @@
         return;
       }
 
+      if (isTextEntryElement(element) || containsTextEntry(element)) {
+        return;
+      }
+
       const label = normalizeText(element.getAttribute("aria-label"));
       const text = getText(element);
       const combined = `${label} ${text}`.trim();
@@ -324,7 +400,7 @@
 
   const cleanCards = (root) => {
     root.querySelectorAll?.(CARD_SELECTOR).forEach((element) => {
-      if (element.hasAttribute(HIDDEN_ATTR) || isInsidePost(element)) {
+      if (element.hasAttribute(HIDDEN_ATTR) || isInsidePost(element) || containsTextEntry(element)) {
         return;
       }
 
@@ -370,7 +446,7 @@
 
       count += 1;
       const parent = node.parentElement;
-      if (!parent || parent.hasAttribute(HIDDEN_ATTR) || isInsidePost(parent)) {
+      if (!parent || parent.hasAttribute(HIDDEN_ATTR) || isInsidePost(parent) || isTextEntryElement(parent)) {
         continue;
       }
 
@@ -504,6 +580,10 @@
   };
 
   const forceLatestFollowingSort = (root) => {
+    if (hasActiveTextEntry()) {
+      return;
+    }
+
     const now = Date.now();
     const routeKey = resetSortRouteStateIfNeeded();
 
@@ -552,8 +632,11 @@
 
     cleanDirectCandidates(root);
     cleanCards(root);
-    cleanTextMatches(root);
-    forceLatestFollowingSort(root);
+
+    if (!hasActiveTextEntry()) {
+      cleanTextMatches(root);
+      forceLatestFollowingSort(root);
+    }
   };
 
   const scheduleClean = () => {
@@ -569,6 +652,11 @@
   };
 
   const start = () => {
+    document.addEventListener("focusin", markTextEntryInteraction, true);
+    document.addEventListener("keydown", markTextEntryInteraction, true);
+    document.addEventListener("input", markTextEntryInteraction, true);
+    document.addEventListener("compositionstart", markTextEntryInteraction, true);
+
     scheduleClean();
 
     if (observer) {
